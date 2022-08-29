@@ -1,0 +1,65 @@
+openapi: 3.0.3
+info:
+  title: Waku V2 node REST API 
+  version: 1.0.0
+  contact:
+    name: VAC Team
+    url: https://forum.vac.dev/
+
+tags:
+  - name: lightpush
+    description: Lightpush REST API for WakuV2 node
+
+paths:
+  /lightpush/v1/messages:
+    post:
+      summary: Push a message to peer
+      description: Push a message to a the lightpush peer.
+      operationId: pushMessage
+      tags:
+        - lightpush
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LightpushPostMessagesRequest'
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request.
+        '5XX':
+          description: Unexpected error.
+
+components:
+  schemas:
+    PubSubTopic:
+      type: string
+    ContentTopic:
+      type: string
+    
+    LightpushWakuMessage:
+      type: object
+      properties:
+        payload:
+          type: string
+          format: byte
+        contentTopic:
+          $ref: '#/components/schemas/ContentTopic'
+        version:
+          type: number
+        timestamp:
+          type: number
+      required:
+        - payload
+
+    LightpushPostMessagesRequest:
+      type: object
+      properties: 
+        pubsubTopic:
+          $ref: "#/components/schemas/PubSubTopic"
+        message:
+          $ref: '#/components/schemas/LightpushWakuMessage'
+      required: 
+        - message
+    
