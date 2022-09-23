@@ -845,6 +845,7 @@ when isMainModule:
 
     # Setup database connection
     if conf.dbPath != "":
+      debug "Mounting node storage (SQLite)", path=(conf.dbPath & "/store.sqlite3")
       let dbRes = SqliteDatabase.init(conf.dbPath)
       if dbRes.isErr():
         warn "failed to init database connection", err = dbRes.error
