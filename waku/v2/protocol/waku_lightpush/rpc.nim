@@ -6,12 +6,12 @@ else:
 import
   std/options
 import
-  ../waku_message
+  ../waku_message/rpc
 
 type
   PushRequest* = object
     pubSubTopic*: string
-    message*: WakuMessage
+    message*: WakuMessageRPC
 
   PushResponse* = object
     isSuccess*: bool

@@ -13,6 +13,7 @@ import
 import
   ../../node/peer_manager/peer_manager,
   ../waku_message,
+  ../waku_message/rpc as waku_message_rpc,
   ./rpc,
   ./rpc_codec,
   ./protocol_metrics
@@ -27,7 +28,7 @@ const WakuLightPushCodec* = "/vac/waku/lightpush/2.0.0-beta1"
 
 type
   WakuLightPushResult*[T] = Result[T, string]
-  
+
   PushMessageHandler* = proc(peer: PeerId, pubsubTopic: PubsubTopic, message: WakuMessage): Future[WakuLightPushResult[void]] {.gcsafe, closure.}
 
   WakuLightPush* = ref object of LPProtocol
@@ -40,7 +41,7 @@ proc initProtocolHandler*(wl: WakuLightPush) =
     let buffer = await conn.readLp(MaxRpcSize.int)
     let reqDecodeRes = PushRPC.decode(buffer)
     if reqDecodeRes.isErr():
-      error "failed to decode rpc"
+      error "failed to decode rpc", error=reqDecodeRes.error
       waku_lightpush_errors.inc(labelValues = [decodeRpcFailure])
       return
 
@@ -53,7 +54,7 @@ proc initProtocolHandler*(wl: WakuLightPush) =
     waku_lightpush_messages.inc(labelValues = ["PushRequest"])
     let
       pubSubTopic = req.request.get().pubSubTopic
-      message = req.request.get().message
+      message = req.request.get().message.toAPI()
     debug "push request", peerId=conn.peerId, requestId=req.requestId, pubsubTopic=pubsubTopic
 
     var response: PushResponse
@@ -71,10 +72,10 @@ proc initProtocolHandler*(wl: WakuLightPush) =
   wl.handler = handle
   wl.codec = WakuLightPushCodec
 
-proc new*(T: type WakuLightPush, 
-          peerManager: PeerManager, 
+proc new*(T: type WakuLightPush,
+          peerManager: PeerManager,
           rng: ref rand.HmacDrbgContext,
-          pushHandler: PushMessageHandler): T = 
+          pushHandler: PushMessageHandler): T =
   let wl = WakuLightPush(rng: rng, peerManager: peerManager, pushHandler: pushHandler)
   wl.initProtocolHandler()
   return wl

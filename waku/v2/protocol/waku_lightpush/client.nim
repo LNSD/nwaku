@@ -14,6 +14,7 @@ import
   ../../node/peer_manager/peer_manager,
   ../../utils/requests,
   ../waku_message,
+  ../waku_message/rpc as waku_message_rpc,
   ./protocol,
   ./protocol_metrics,
   ./rpc,
@@ -48,7 +49,7 @@ proc sendPushRequest(wl: WakuLightPushClient, req: PushRequest, peer: PeerId|Rem
   var buffer = await connection.readLp(MaxRpcSize.int)
   let decodeRespRes = PushRPC.decode(buffer)
   if decodeRespRes.isErr():
-    error "failed to decode response"
+    error "failed to decode response", error=decodeRespRes.error
     waku_lightpush_errors.inc(labelValues = [decodeRpcFailure])
     return err(decodeRpcFailure)
 
@@ -67,5 +68,5 @@ proc sendPushRequest(wl: WakuLightPushClient, req: PushRequest, peer: PeerId|Rem
   return ok()
 
 proc publish*(wl: WakuLightPushClient, pubsubTopic: PubsubTopic, message: WakuMessage, peer: PeerId|RemotePeerInfo): Future[WakuLightPushResult[void]] {.async, gcsafe.} =
-  let pushRequest = PushRequest(pubsubTopic: pubsubTopic, message: message)
+  let pushRequest = PushRequest(pubsubTopic: pubsubTopic, message: message.toRPC())
   return await wl.sendPushRequest(pushRequest, peer)

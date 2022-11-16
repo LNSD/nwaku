@@ -9,6 +9,7 @@ import
   libp2p/switch
 import
   ../../waku/v2/protocol/waku_message,
+  ../../waku/v2/protocol/waku_message/rpc,
   ../../waku/v2/protocol/waku_lightpush,
   ../../waku/v2/node/peer_manager/peer_manager,
   ../../waku/v2/utils/peers,
@@ -45,7 +46,7 @@ procSuite "WakuNode - Lightpush":
 
     var completionFutRelay = newFuture[bool]()
     proc relayHandler(pubsubTopic: PubsubTopic, data: seq[byte]) {.async, gcsafe.} =
-      let msg = WakuMessage.decode(data).get()
+      let msg = WakuMessageRPC.decode(data).value.toAPI()
       check:
         pubsubTopic == DefaultPubsubTopic
         msg == message

@@ -24,7 +24,8 @@ import
   ../../utils/time,
   ../../utils/keyfile,
   ../../node/waku_node,
-  ../waku_message
+  ../waku_message,
+  ../waku_message/rpc as waku_message_rpc
 
 logScope:
   topics = "waku rln_relay"
@@ -978,10 +979,10 @@ proc addRLNRelayValidator*(node: WakuNode, pubsubTopic: PubsubTopic, contentTopi
   ## the message validation logic is according to https://rfc.vac.dev/spec/17/
   proc validator(topic: string, message: messages.Message): Future[pubsub.ValidationResult] {.async.} =
     trace "rln-relay topic validator is called"
-    let decodeRes = WakuMessage.decode(message.data)
+    let decodeRes = WakuMessageRPC.decode(message.data)
     if decodeRes.isOk():
       let
-        wakumessage = decodeRes.value
+        wakumessage = decodeRes.value.toAPI()
         payload = string.fromBytes(wakumessage.payload)
 
       # check the contentTopic

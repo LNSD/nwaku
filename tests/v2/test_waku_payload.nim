@@ -3,6 +3,7 @@
 import
   testutils/unittests,
   ../../waku/v2/protocol/waku_message,
+  ../../waku/v2/protocol/waku_message/rpc,
   ../../waku/v2/node/waku_payload,
   ../../waku/v2/utils/time
 
@@ -18,15 +19,15 @@ procSuite "Waku Payload":
       version = 0'u32
       payload = @[byte 0, 1, 2]
       msg = WakuMessage(payload: payload, version: version)
-      pb =  msg.encode()
+      pb =  msg.toRPC().encode()
 
     # Decoding
-    let msgDecoded = WakuMessage.decode(pb.buffer)
+    let msgDecoded = WakuMessageRPC.decode(pb.buffer)
     check msgDecoded.isOk()
 
     let
-      keyInfo = KeyInfo(kind:None)
-      decoded = decodePayload(msgDecoded.get(), keyInfo)
+      keyInfo = KeyInfo(kind: KeyKind.None)
+      decoded = decodePayload(msgDecoded.value.toAPI(), keyInfo)
 
     check:
       decoded.isOk()
@@ -44,15 +45,15 @@ procSuite "Waku Payload":
     check encodedPayload.isOk()
     let
       msg = WakuMessage(payload: encodedPayload.get(), version: version)
-      pb =  msg.encode()
+      pb =  msg.toRPC().encode()
 
     # Decoding
-    let msgDecoded = WakuMessage.decode(pb.buffer)
+    let msgDecoded = WakuMessageRPC.decode(pb.buffer)
     check msgDecoded.isOk()
 
     let
       keyInfo = KeyInfo(kind:None)
-      decoded = decodePayload(msgDecoded.get(), keyInfo)
+      decoded = decodePayload(msgDecoded.value.toAPI(), keyInfo)
 
     check:
       decoded.isOk()
@@ -70,15 +71,15 @@ procSuite "Waku Payload":
     check encodedPayload.isOk()
     let
       msg = WakuMessage(payload: encodedPayload.get(), version: version)
-      pb =  msg.encode()
+      pb =  msg.toRPC().encode()
 
     # Decoding
-    let msgDecoded = WakuMessage.decode(pb.buffer)
+    let msgDecoded = WakuMessageRPC.decode(pb.buffer)
     check msgDecoded.isOk()
 
     let
       keyInfo = KeyInfo(kind: Asymmetric, privKey: privKey)
-      decoded = decodePayload(msgDecoded.get(), keyInfo)
+      decoded = decodePayload(msgDecoded.value.toAPI(), keyInfo)
 
     check:
       decoded.isOk()
@@ -98,15 +99,15 @@ procSuite "Waku Payload":
       version = 2'u32
       payload = @[byte 0, 1, 2]
       msg = WakuMessage(payload: payload, version: version)
-      pb =  msg.encode()
+      pb =  msg.toRPC().encode()
 
     # Decoding
-    let msgDecoded = WakuMessage.decode(pb.buffer)
+    let msgDecoded = WakuMessageRPC.decode(pb.buffer)
     check msgDecoded.isOk()
 
     let
       keyInfo = KeyInfo(kind:None)
-      decoded = decodePayload(msgDecoded.get(), keyInfo)
+      decoded = decodePayload(msgDecoded.value.toAPI(), keyInfo)
 
     check:
       decoded.isErr()
@@ -120,36 +121,36 @@ procSuite "Waku Payload":
       payload = @[byte 0, 1, 2]
       timestamp = Timestamp(10)
       msg = WakuMessage(payload: payload, version: version, timestamp: timestamp)
-      
+
     ## When
-    let pb =  msg.encode()
-    let msgDecoded = WakuMessage.decode(pb.buffer)
-    
+    let pb =  msg.toRPC().encode()
+    let msgDecoded = WakuMessageRPC.decode(pb.buffer)
+
     ## Then
     check:
       msgDecoded.isOk()
-    
-    let timestampDecoded = msgDecoded.value.timestamp
+
+    let timestampDecoded = msgDecoded.value.toAPI().timestamp
     check:
       timestampDecoded == timestamp
 
   test "Encode/Decode waku message without timestamp":
-    ## Test the encoding and decoding of a WakuMessage with an empty timestamp field  
+    ## Test the encoding and decoding of a WakuMessage with an empty timestamp field
 
     ## Given
     let
       version = 0'u32
       payload = @[byte 0, 1, 2]
       msg = WakuMessage(payload: payload, version: version)
-    
+
     ## When
-    let pb =  msg.encode()
-    let msgDecoded = WakuMessage.decode(pb.buffer)
+    let pb =  msg.toRPC().encode()
+    let msgDecoded = WakuMessageRPC.decode(pb.buffer)
 
     ## Then
     check:
       msgDecoded.isOk()
-    
-    let timestampDecoded = msgDecoded.value.timestamp
+
+    let timestampDecoded = msgDecoded.value.toAPI().timestamp
     check:
       timestampDecoded == Timestamp(0)

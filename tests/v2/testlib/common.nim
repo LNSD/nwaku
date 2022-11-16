@@ -20,6 +20,7 @@ proc ts*(offset=0, origin=now()): Timestamp =
 proc fakeWakuMessage*(
   payload: string|seq[byte] = "TEST-PAYLOAD",
   contentTopic = DefaultContentTopic,
+  version: uint32 = 0,
   ts = now(),
   ephemeral = false
 ): WakuMessage =
@@ -32,7 +33,7 @@ proc fakeWakuMessage*(
   WakuMessage(
     payload: payloadBytes,
     contentTopic: contentTopic,
-    version: 2,
+    version: version,
     timestamp: ts,
     ephemeral: ephemeral
   )

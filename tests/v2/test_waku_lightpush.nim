@@ -1,9 +1,9 @@
 {.used.}
 
 import
-  testutils/unittests, 
+  testutils/unittests,
   chronicles,
-  chronos, 
+  chronos,
   libp2p/crypto/crypto
 import
   ../../waku/v2/node/peer_manager/peer_manager,
@@ -36,15 +36,15 @@ suite "Waku Lightpush":
 
   asyncTest "push message to pubsub topic is successful":
     ## Setup
-    let 
+    let
       serverSwitch = newTestSwitch()
       clientSwitch = newTestSwitch()
 
     await allFutures(serverSwitch.start(), clientSwitch.start())
 
     ## Given
-    let handlerFuture = newFuture[(string, WakuMessage)]()
-    let handler = proc(peer: PeerId, pubsubTopic: PubsubTopic, message: WakuMessage): Future[WakuLightPushResult[void]] {.async.} = 
+    let handlerFuture = newFuture[(PubsubTopic, WakuMessage)]()
+    let handler = proc(peer: PeerId, pubsubTopic: PubsubTopic, message: WakuMessage): Future[WakuLightPushResult[void]] {.async.} =
         handlerFuture.complete((pubsubTopic, message))
         return ok()
 
@@ -78,7 +78,7 @@ suite "Waku Lightpush":
 
   asyncTest "push message to pubsub topic should fail":
     ## Setup
-    let 
+    let
       serverSwitch = newTestSwitch()
       clientSwitch = newTestSwitch()
 
@@ -86,9 +86,9 @@ suite "Waku Lightpush":
 
     ## Given
     let error = "test_failure"
-    
+
     let handlerFuture = newFuture[void]()
-    let handler = proc(peer: PeerId, pubsubTopic: PubsubTopic, message: WakuMessage): Future[WakuLightPushResult[void]] {.async.} = 
+    let handler = proc(peer: PeerId, pubsubTopic: PubsubTopic, message: WakuMessage): Future[WakuLightPushResult[void]] {.async.} =
         handlerFuture.complete()
         return err(error)
 
@@ -115,6 +115,6 @@ suite "Waku Lightpush":
     let requestError = requestRes.error
     check:
       requestError == error
-  
+
     ## Cleanup
     await allFutures(clientSwitch.stop(), serverSwitch.stop())

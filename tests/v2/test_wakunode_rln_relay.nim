@@ -17,13 +17,14 @@ import
 import
   ../../waku/v2/node/waku_node,
   ../../waku/v2/protocol/waku_message,
+  ../../waku/v2/protocol/waku_message/rpc as waku_message_rpc,
   ../../waku/v2/protocol/waku_rln_relay,
   ../../waku/v2/utils/peers
 
 from std/times import epochTime
 
 
-  
+
 const RlnRelayPubsubTopic = "waku/2/rlnrelay/proto"
 
 procSuite "WakuNode - RLN relay":
@@ -56,7 +57,7 @@ procSuite "WakuNode - RLN relay":
     # mount rlnrelay in off-chain mode
     let mountRes1 = node1.mountRlnRelayStatic(group = groupOpt1.get(),
                                 memKeyPair = memKeyPairOpt1.get(),
-                                memIndex = memIndexOpt1.get(), 
+                                memIndex = memIndexOpt1.get(),
                                 pubsubTopic = rlnRelayPubSubTopic,
                                 contentTopic = contentTopic)
     require:
@@ -105,9 +106,9 @@ procSuite "WakuNode - RLN relay":
 
     var completionFut = newFuture[bool]()
     proc relayHandler(topic: string, data: seq[byte]) {.async, gcsafe.} =
-      let msg = WakuMessage.decode(data)
+      let msg = WakuMessageRPC.decode(data)
       if msg.isOk():
-        debug "The received topic:", topic
+        debug "The received topic:", topic=topic
         if topic == rlnRelayPubSubTopic:
           completionFut.complete(true)
 
@@ -174,7 +175,7 @@ procSuite "WakuNode - RLN relay":
     let staticSetupRes2 = rlnRelayStaticSetUp(2) # set up rln relay inputs
     require:
       staticSetupRes2.isOk()
-    
+
     let (groupOpt2, memKeyPairOpt2, memIndexOpt2) = staticSetupRes2.get()
     # mount rlnrelay in off-chain mode
     let mountRes2 = node2.mountRlnRelayStatic(group = groupOpt2.get(),
@@ -210,7 +211,7 @@ procSuite "WakuNode - RLN relay":
     # define a custom relay handler
     var completionFut = newFuture[bool]()
     proc relayHandler(topic: string, data: seq[byte]) {.async, gcsafe.} =
-      let msg = WakuMessage.decode(data)
+      let msg = WakuMessageRPC.decode(data)
       if msg.isOk():
         debug "The received topic:", topic
         if topic == rlnRelayPubSubTopic:
@@ -230,7 +231,7 @@ procSuite "WakuNode - RLN relay":
     let
       contentTopicBytes = contentTopic.toBytes
       input = concat(payload, contentTopicBytes)
-      extraBytes: seq[byte] = @[byte(1),2,3] 
+      extraBytes: seq[byte] = @[byte(1),2,3]
       rateLimitProofRes = node1.wakuRlnRelay.rlnInstance.proofGen(data = concat(input, extraBytes),   # we add extra bytes to invalidate proof verification against original payload
                                                               memKeys = node1.wakuRlnRelay.membershipKeyPair,
                                                               memIndex = MembershipIndex(1),
@@ -239,9 +240,7 @@ procSuite "WakuNode - RLN relay":
       rateLimitProofRes.isOk()
     let rateLimitProof = rateLimitProofRes.get().encode().buffer
 
-    let message = WakuMessage(payload: @payload,
-                              contentTopic: contentTopic,
-                              proof: rateLimitProof)
+    let message = WakuMessage(payload: @payload, contentTopic: contentTopic, proof: rateLimitProof)
 
 
     ## node1 publishes a message with an invalid rln proof, the message is then relayed to node2 which in turn
@@ -281,7 +280,7 @@ procSuite "WakuNode - RLN relay":
     let staticSetupRes1 = rlnRelayStaticSetUp(1) # set up rln relay inputs
     require:
       staticSetupRes1.isOk()
-    
+
     let (groupOpt1, memKeyPairOpt1, memIndexOpt1) = staticSetupRes1.get()
     # mount rlnrelay in off-chain mode
     let mountRes1 = node1.mountRlnRelayStatic(group = groupOpt1.get(),
@@ -299,7 +298,7 @@ procSuite "WakuNode - RLN relay":
     let staticSetupRes2 = rlnRelayStaticSetUp(2) # set up rln relay inputs
     require:
       staticSetupRes2.isOk()
-    
+
     let (groupOpt2, memKeyPairOpt2, memIndexOpt2) = staticSetupRes2.get()
     # mount rlnrelay in off-chain mode
     let mountRes2 = node2.mountRlnRelayStatic(group = groupOpt2.get(),
@@ -317,12 +316,12 @@ procSuite "WakuNode - RLN relay":
     let staticSetupRes3 = rlnRelayStaticSetUp(3) # set up rln relay inputs
     require:
       staticSetupRes3.isOk()
-    
+
     let (groupOpt3, memKeyPairOpt3, memIndexOpt3) = staticSetupRes3.get()
     # mount rlnrelay in off-chain mode
     let mountRes3 = node3.mountRlnRelayStatic(group = groupOpt3.get(),
                                 memKeyPair = memKeyPairOpt3.get(),
-                                memIndex = memIndexOpt3.get(), 
+                                memIndex = memIndexOpt3.get(),
                                 pubsubTopic = rlnRelayPubSubTopic,
                                 contentTopic = contentTopic)
     require:
@@ -360,9 +359,9 @@ procSuite "WakuNode - RLN relay":
     var completionFut3 = newFuture[bool]()
     var completionFut4 = newFuture[bool]()
     proc relayHandler(topic: string, data: seq[byte]) {.async, gcsafe.} =
-      let msg = WakuMessage.decode(data)
+      let msg = WakuMessageRPC.decode(data)
       if msg.isOk():
-        let wm = msg.value()
+        let wm = msg.value.toAPI()
         debug "The received topic:", topic
         if topic == rlnRelayPubSubTopic:
           if wm == wm1:

@@ -862,17 +862,11 @@ suite "Waku rln relay":
 
     let
       wm1 = WakuMessage(proof: RateLimitProof(epoch: epoch,
-                                              nullifier: nullifier1, 
-                                              shareX: shareX1, 
-                                              shareY: shareY1).encodeAndGetBuf())
+          nullifier: nullifier1, shareX: shareX1, shareY: shareY1).encode().buffer)
       wm2 = WakuMessage(proof: RateLimitProof(epoch: epoch,
-                                              nullifier: nullifier2, 
-                                              shareX: shareX2, 
-                                              shareY: shareY2).encodeAndGetBuf())
+          nullifier: nullifier2, shareX: shareX2, shareY: shareY2).encode().buffer)
       wm3 = WakuMessage(proof: RateLimitProof(epoch: epoch,
-                                              nullifier: nullifier3, 
-                                              shareX: shareX3, 
-                                              shareY: shareY3).encodeAndGetBuf())
+          nullifier: nullifier3, shareX: shareX3, shareY: shareY3).encode().buffer)
 
     # check whether hasDuplicate correctly finds records with the same nullifiers but different secret shares
     # no duplicate for wm1 should be found, since the log is empty

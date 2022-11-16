@@ -27,6 +27,7 @@ import
   ../../waku/v2/utils/namespacing,
   ../../waku/v2/utils/time,
   ../../waku/v2/protocol/waku_message,
+  ../../waku/v2/protocol/waku_message/rpc,
   ../../waku/v2/node/waku_node,
   ../../waku/v2/node/peer_manager/peer_manager,
   ../../waku/v2/node/jsonrpc/[debug_api,
@@ -135,7 +136,7 @@ func toWakuMessage(env: waku_protocol.Envelope): WakuMessage =
 proc toWakuV2(bridge: WakuBridge, env: waku_protocol.Envelope) {.async.} =
   let msg = env.toWakuMessage()
 
-  if bridge.seen.containsOrAdd(msg.encode().buffer.hash()):
+  if bridge.seen.containsOrAdd(msg.toRPC().encode().buffer.hash()):
     # This is a duplicate message. Return
     trace "Already seen. Dropping.", msg=msg
     waku_bridge_dropped.inc(labelValues = ["duplicate"])
@@ -148,7 +149,7 @@ proc toWakuV2(bridge: WakuBridge, env: waku_protocol.Envelope) {.async.} =
   await bridge.nodev2.publish(bridge.nodev2PubsubTopic, msg)
 
 proc toWakuV1(bridge: WakuBridge, msg: WakuMessage) {.gcsafe, raises: [Defect, LPError, ValueError].} =
-  if bridge.seen.containsOrAdd(msg.encode().buffer.hash()):
+  if bridge.seen.containsOrAdd(msg.toRPC().encode().buffer.hash()):
     # This is a duplicate message. Return
     trace "Already seen. Dropping.", msg=msg
     waku_bridge_dropped.inc(labelValues = ["duplicate"])
@@ -311,11 +312,11 @@ proc start*(bridge: WakuBridge) {.async.} =
 
   # Handle messages on Waku v2 and bridge to Waku v1
   proc relayHandler(pubsubTopic: PubsubTopic, data: seq[byte]) {.async, gcsafe.} =
-    let msg = WakuMessage.decode(data)
-    if msg.isOk() and msg.get().isBridgeable():
+    let msg = WakuMessageRPC.decode(data)
+    if msg.isOk() and msg.value.toAPI().isBridgeable():
       try:
         trace "Bridging message from V2 to V1", msg=msg.tryGet()
-        bridge.toWakuV1(msg.tryGet())
+        bridge.toWakuV1(msg.value.toAPI())
       except ValueError:
         trace "Failed to convert message to Waku v1. Check content-topic format.", msg=msg
         waku_bridge_dropped.inc(labelValues = ["value_error"])

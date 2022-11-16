@@ -9,6 +9,7 @@ import
 import
   ../../../common/protobuf,
   ../waku_message,
+  ../waku_message/rpc as waku_message_rpc,
   ./common,
   ./rpc
 
@@ -64,7 +65,7 @@ proc decode*(T: type PagingIndexRPC, buffer: seq[byte]): ProtoResult[T] =
   else:
     rpc.pubsubTopic = pubsubTopic
 
-  ok(rpc) 
+  ok(rpc)
 
 
 proc encode*(rpc: PagingInfoRPC): ProtoBuffer =
@@ -103,7 +104,7 @@ proc decode*(T: type PagingInfoRPC, buffer: seq[byte]): ProtoResult[T] =
   else:
     rpc.direction = some(PagingDirectionRPC(direction))
 
-  ok(rpc) 
+  ok(rpc)
 
 
 ## Wire protocol
@@ -129,7 +130,7 @@ proc decode*(T: type HistoryContentFilterRPC, buffer: seq[byte]): ProtoResult[T]
 proc encode*(rpc: HistoryQueryRPC): ProtoBuffer =
   var pb = initProtoBuffer()
   pb.write3(2, rpc.pubsubTopic)
-  
+
   for filter in rpc.contentFilters:
     pb.write3(3, filter.encode())
 
@@ -183,8 +184,8 @@ proc decode*(T: type HistoryQueryRPC, buffer: seq[byte]): ProtoResult[T] =
 proc encode*(response: HistoryResponseRPC): ProtoBuffer =
   var pb = initProtoBuffer()
 
-  for rpc in response.messages:
-    pb.write3(2, rpc.encode())
+  for msg in response.messages:
+    pb.write3(2, msg.encode())
 
   pb.write3(3, response.pagingInfo.map(encode))
   pb.write3(4, uint32(ord(response.error)))
@@ -199,7 +200,7 @@ proc decode*(T: type HistoryResponseRPC, buffer: seq[byte]): ProtoResult[T] =
   var messages: seq[seq[byte]]
   if ?pb.getRepeatedField(2, messages):
     for pb in messages:
-      let message = ?WakuMessage.decode(pb)
+      let message = ?WakuMessageRPC.decode(pb)
       rpc.messages.add(message)
   else:
     rpc.messages = @[]

@@ -24,6 +24,7 @@ import
   libp2p/transports/wstransport
 import
   ../protocol/waku_message,
+  ../protocol/waku_message/rpc as waku_message_rpc,
   ../protocol/waku_relay,
   ../protocol/waku_archive,
   ../protocol/waku_store,
@@ -266,24 +267,16 @@ proc subscribe(node: WakuNode, topic: PubsubTopic, handler: Option[TopicHandler]
 
   info "subscribe", topic=topic
 
-  proc defaultHandler(topic: string, data: seq[byte]) {.async, gcsafe.} =
-    # A default handler should be registered for all topics
-    trace "Hit default handler", topic=topic, data=data
-
-    let msg = WakuMessage.decode(data)
-    if msg.isErr():
-      # TODO: Add metric to track waku message decode errors
-      return
-
+  proc defaultHandler(topic: string, msg: WakuMessage) {.async, gcsafe.} =
+    ## A default handler should be registered for all topics
+    waku_node_messages.inc(labelValues = ["relay"])
 
     # Notify mounted protocols of new message
     if not node.wakuFilter.isNil():
-      await node.wakuFilter.handleMessage(topic, msg.value)
+      await node.wakuFilter.handleMessage(topic, msg)
 
     if not node.wakuArchive.isNil():
-      node.wakuArchive.handleMessage(topic, msg.value)
-
-    waku_node_messages.inc(labelValues = ["relay"])
+      node.wakuArchive.handleMessage(topic, msg)
 
 
   let wakuRelay = node.wakuRelay
@@ -341,7 +334,7 @@ proc publish*(node: WakuNode, topic: PubsubTopic, message: WakuMessage) {.async,
 
   trace "publish", topic=topic, contentTopic=message.contentTopic
 
-  let data = message.encode().buffer
+  let data = message.toRPC().encode().buffer
   discard await node.wakuRelay.publish(topic, data)
 
 proc startRelay*(node: WakuNode) {.async.} =
@@ -718,7 +711,7 @@ proc mountLightPush*(node: WakuNode) {.async.} =
       return err("no waku relay found")
   else:
     pushHandler = proc(peer: PeerId, pubsubTopic: string, message: WakuMessage): Future[WakuLightPushResult[void]] {.async.} =
-      discard await node.wakuRelay.publish(pubsubTopic, message.encode().buffer)
+      discard await node.wakuRelay.publish(pubsubTopic, message.toRPC().encode().buffer)
       return ok()
 
   debug "mounting lightpush with relay"

@@ -9,6 +9,7 @@ import
 import
   ../../../common/protobuf,
   ../waku_message,
+  ../waku_message/rpc as waku_message_rpc,
   ./rpc
 
 
@@ -38,7 +39,7 @@ proc decode*(T: type PushRequest, buffer: seq[byte]): ProtoResult[T] =
   if not ?pb.getField(2, messageBuf):
     return err(ProtoError.RequiredFieldMissing)
   else:
-    rpc.message = ?WakuMessage.decode(messageBuf)
+    rpc.message = ?WakuMessageRPC.decode(messageBuf)
 
   ok(rpc)
 

@@ -9,6 +9,7 @@ import
 import
   ../../utils/time,
   ../waku_message,
+  ../waku_message/rpc,
   ./common
 
 
@@ -26,20 +27,6 @@ proc `==`*(x, y: PagingIndexRPC): bool =
   (x.senderTime == y.senderTime) and
   (x.digest == y.digest) and
   (x.pubsubTopic == y.pubsubTopic)
-
-proc compute*(T: type PagingIndexRPC, msg: WakuMessage, receivedTime: Timestamp, pubsubTopic: PubsubTopic): T =
-  ## Takes a WakuMessage with received timestamp and returns its Index.
-  let
-    digest = computeDigest(msg)
-    senderTime = msg.timestamp
-
-  PagingIndexRPC(
-    pubsubTopic: pubsubTopic,
-    senderTime: senderTime,
-    receiverTime: receivedTime,
-    digest: digest
-  )
-
 
 type
   PagingDirectionRPC* {.pure.} = enum
@@ -73,7 +60,7 @@ type
     SERVICE_UNAVAILABLE = uint32(503)
 
   HistoryResponseRPC* = object
-    messages*: seq[WakuMessage]
+    messages*: seq[WakuMessageRPC]
     pagingInfo*: Option[PagingInfoRPC]
     error*: HistoryResponseErrorRPC
 
@@ -213,7 +200,7 @@ proc toRPC*(res: HistoryResult): HistoryResponseRPC =
       error = HistoryResponseErrorRPC.NONE
 
     HistoryResponseRPC(
-      messages: messages,
+      messages: messages.map(toRPC),
       pagingInfo: pagingInfo,
       error: error
     )
@@ -229,6 +216,6 @@ proc toAPI*(rpc: HistoryResponseRPC): HistoryResult =
                else: rpc.pagingInfo.get().cursor.map(toAPI)
 
     ok(HistoryResponse(
-      messages: messages,
+      messages: messages.map(toAPI),
       cursor: cursor
     ))

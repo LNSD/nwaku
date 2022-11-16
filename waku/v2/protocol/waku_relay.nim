@@ -10,7 +10,7 @@ else:
 import
   stew/results,
   chronos,
-  chronicles, 
+  chronicles,
   metrics,
   libp2p/multihash,
   libp2p/protocols/pubsub/pubsub,
@@ -19,7 +19,8 @@ import
   libp2p/stream/connection
 import
   ../node/peer_manager/peer_manager,
-  ./waku_message
+  ./waku_message,
+  ./waku_message/rpc
 
 logScope:
   topics = "waku relay"
@@ -61,7 +62,7 @@ proc initProtocolHandler(w: WakuRelay) =
   w.codec = WakuRelayCodec
 
 method initPubSub(w: WakuRelay) {.raises: [InitializationError].} =
-  ## NOTE: This method overrides GossipSub initPubSub method; it called by the 
+  ## NOTE: This method overrides GossipSub initPubSub method; it called by the
   ##  parent protocol, PubSub.
   debug "init waku relay"
 
@@ -76,11 +77,11 @@ method initPubSub(w: WakuRelay) {.raises: [InitializationError].} =
   w.initProtocolHandler()
 
 
-proc new*(T: type WakuRelay, 
-          peerManager: PeerManager, 
+proc new*(T: type WakuRelay,
+          peerManager: PeerManager,
           defaultPubsubTopics: seq[PubsubTopic] = @[],
           triggerSelf: bool = true): WakuRelayResult[T] =
-  
+
   proc msgIdProvider(msg: messages.Message): Result[MessageID, ValidationResult] =
     let hash = MultiHash.digest("sha2-256", msg.data)
     if hash.isErr():
@@ -119,15 +120,15 @@ method stop*(w: WakuRelay) {.async.} =
 method subscribe*(w: WakuRelay, pubsubTopic: PubsubTopic, handler: SubsciptionHandler|PubsubRawHandler) =
   debug "subscribe", pubsubTopic=pubsubTopic
 
-  var subsHandler: PubsubRawHandler 
+  var subsHandler: PubsubRawHandler
   when handler is SubsciptionHandler:
     subsHandler = proc(pubsubTopic: PubsubTopic, data: seq[byte]): Future[void] {.gcsafe, raises: [Defect].} =
-        let decodeRes = WakuMessage.decode(data)
+        let decodeRes = WakuMessageRPC.decode(data)
         if decodeRes.isErr():
           debug "message decode failure", pubsubTopic=pubsubTopic, error=decodeRes.error
           return
 
-        handler(pubsubTopic, decodeRes.value)
+        handler(pubsubTopic, decodeRes.value.toAPI())
   else:
     subsHandler = handler
 
@@ -149,7 +150,7 @@ method publish*(w: WakuRelay, pubsubTopic: PubsubTopic, message: WakuMessage|seq
 
   var data: seq[byte]
   when message is WakuMessage:
-    data = message.encode()
+    data = message.toRPC().encode()
   else:
     data = message
 

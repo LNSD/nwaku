@@ -9,6 +9,7 @@ import
   json_rpc/rpcserver,
   libp2p/protocols/pubsub/pubsub,
   ../../protocol/waku_message,
+  ../../protocol/waku_message/rpc,
   ../waku_node,
   ./jsonrpc_types,
   ./jsonrpc_utils
@@ -19,13 +20,13 @@ logScope:
   topics = "waku node jsonrpc relay_api"
 
 const futTimeout* = 5.seconds # Max time to wait for futures
-const maxCache* = 30 # Max number of messages cached per topic @TODO make this configurable
+const maxCache* = 30 # Max number of messages cached per topic TODO: make this configurable
 
 proc installRelayApiHandlers*(node: WakuNode, rpcsrv: RpcServer, topicCache: TopicCache) =
   
   proc topicHandler(topic: string, data: seq[byte]) {.async, raises: [Defect].} =
     trace "Topic handler triggered", topic=topic
-    let msg = WakuMessage.decode(data)
+    let msg = WakuMessageRPC.decode(data)
     if msg.isOk():
       # Add message to current cache
       trace "WakuMessage received", msg=msg, topic=topic
@@ -35,22 +36,22 @@ proc installRelayApiHandlers*(node: WakuNode, rpcsrv: RpcServer, topicCache: Top
 
       if msgs.len >= maxCache:
         # Message cache on this topic exceeds maximum. Delete oldest.
-        # @TODO this may become a bottle neck if called as the norm rather than exception when adding messages. Performance profile needed.
+        # TODO: this may become a bottle neck if called as the norm rather than exception when adding messages. Performance profile needed.
         msgs.delete(0,0)
-      msgs.add(msg[])
+      msgs.add(msg.value.toAPI())
 
       # Replace indexed entry with copy
-      # @TODO max number of topics could be limited in node
+      # TODO: max number of topics could be limited in node
       topicCache[topic] = msgs
     else:
       debug "WakuMessage received but failed to decode", msg=msg, topic=topic
-      # @TODO handle message decode failure
+      # TODO: handle message decode failure
   
   ## Node may already be subscribed to some topics when Relay API handlers are installed. Let's add these
   for topic in PubSub(node.wakuRelay).topics.keys:
     debug "Adding API topic handler for existing subscription", topic=topic
 
-    node.subscribe(topic, topicHandler)      
+    node.subscribe(topic, topicHandler)
     
     # Create message cache for this topic
     debug "MessageCache for topic", topic=topic
@@ -72,7 +73,7 @@ proc installRelayApiHandlers*(node: WakuNode, rpcsrv: RpcServer, topicCache: Top
   rpcsrv.rpc("get_waku_v2_relay_v1_messages") do(topic: string) -> seq[WakuMessage]:
     ## Returns all WakuMessages received on a PubSub topic since the
     ## last time this method was called
-    ## @TODO ability to specify a return message limit
+    ## TODO: ability to specify a return message limit
     debug "get_waku_v2_relay_v1_messages", topic=topic
 
     if topicCache.hasKey(topic):

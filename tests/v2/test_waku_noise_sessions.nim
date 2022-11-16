@@ -11,6 +11,7 @@ import
   ../../waku/v2/protocol/waku_noise/noise_utils,
   ../../waku/v2/protocol/waku_noise/noise_handshake_processing,
   ../../waku/v2/protocol/waku_message,
+  ../../waku/v2/protocol/waku_message/rpc,
   ../test_helpers
 
 procSuite "Waku Noise Sessions":
@@ -86,7 +87,7 @@ procSuite "Waku Noise Sessions":
     var 
       sentTransportMessage: seq[byte]
       aliceStep, bobStep: HandshakeStepResult
-      msgFromPb: ProtoResult[WakuMessage]
+      msgFromPb: ProtoResult[WakuMessageRPC]
       wakuMsg: WakuResult[WakuMessage]
       pb: ProtoBuffer
       readPayloadV2: PayloadV2
@@ -125,16 +126,16 @@ procSuite "Waku Noise Sessions":
 
     # At this point wakuMsg is sent over the Waku network and is received
     # We simulate this by creating the ProtoBuffer from wakuMsg
-    pb = wakuMsg.get().encode()
+    pb = wakuMsg.value.toRPC().encode()
 
     # We decode the WakuMessage from the ProtoBuffer
-    msgFromPb = WakuMessage.decode(pb.buffer)
+    msgFromPb = WakuMessageRPC.decode(pb.buffer)
     
     check:
       msgFromPb.isOk()
 
     # We decode the payloadV2 from the WakuMessage
-    readPayloadV2 = decodePayloadV2(msgFromPb.get()).get()
+    readPayloadV2 = decodePayloadV2(msgFromPb.value.toAPI()).get()
 
     check:
       readPayloadV2 == aliceStep.payload2
@@ -182,16 +183,16 @@ procSuite "Waku Noise Sessions":
 
     # At this point wakuMsg is sent over the Waku network and is received
     # We simulate this by creating the ProtoBuffer from wakuMsg
-    pb = wakuMsg.get().encode()
+    pb = wakuMsg.value.toRPC().encode()
 
     # We decode the WakuMessage from the ProtoBuffer
-    msgFromPb = WakuMessage.decode(pb.buffer)
+    msgFromPb = WakuMessageRPC.decode(pb.buffer)
     
     check:
       msgFromPb.isOk()
 
     # We decode the payloadV2 from the WakuMessage
-    readPayloadV2 = decodePayloadV2(msgFromPb.get()).get()
+    readPayloadV2 = decodePayloadV2(msgFromPb.value.toAPI()).get()
 
     check:
       readPayloadV2 == bobStep.payload2
@@ -235,16 +236,16 @@ procSuite "Waku Noise Sessions":
 
     # At this point wakuMsg is sent over the Waku network and is received
     # We simulate this by creating the ProtoBuffer from wakuMsg
-    pb = wakuMsg.get().encode()
+    pb = wakuMsg.value.toRPC().encode()
 
     # We decode the WakuMessage from the ProtoBuffer
-    msgFromPb = WakuMessage.decode(pb.buffer)
+    msgFromPb = WakuMessageRPC.decode(pb.buffer)
     
     check:
       msgFromPb.isOk()
 
     # We decode the payloadV2 from the WakuMessage
-    readPayloadV2 = decodePayloadV2(msgFromPb.get()).get()
+    readPayloadV2 = decodePayloadV2(msgFromPb.value.toAPI()).get()
 
     check:
       readPayloadV2 == aliceStep.payload2

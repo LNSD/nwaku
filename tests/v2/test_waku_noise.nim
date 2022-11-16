@@ -10,7 +10,7 @@ import
   ../../waku/v2/protocol/waku_noise/noise_utils,
   ../../waku/v2/protocol/waku_noise/noise,
   ../../waku/v2/protocol/waku_noise/noise_handshake_processing,
-  ../../waku/v2/protocol/waku_message,
+  ../../waku/v2/protocol/waku_message/rpc,
   ../test_helpers,
   libp2p/crypto/chacha20poly1305,
   libp2p/protobuf/minprotobuf,
@@ -169,15 +169,15 @@ procSuite "Waku Noise":
       msg.isOk()
 
     # We create ProtoBuffer from WakuMessage
-    let pb = msg.get().encode()
+    let pb = msg.get().toRPC().encode()
 
     # We decode the WakuMessage from the ProtoBuffer
-    let msgFromPb = WakuMessage.decode(pb.buffer)
+    let msgFromPb = WakuMessageRPC.decode(pb.buffer)
     
     check:
       msgFromPb.isOk()
 
-    let decoded = decodePayloadV2(msgFromPb.get())
+    let decoded = decodePayloadV2(msgFromPb.value.toAPI())
 
     check:
       decoded.isOk()

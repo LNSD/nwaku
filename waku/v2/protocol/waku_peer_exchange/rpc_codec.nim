@@ -3,10 +3,14 @@ when (NimMajor, NimMinor) < (1, 4):
 else:
   {.push raises: [].}
 
-
 import
   ../../../common/protobuf,
   ./rpc
+
+
+# TODO: Stablish what is the expected size of a PX message. As currently specified, it can contain an arbitary number of ENRs...
+# 1 MB and add a 64kB safety buffer for protocol overhead.
+const MaxRpcSize* = 1024 * 1024 + 64 * 1024 
 
 
 proc encode*(rpc: PeerExchangeRequest): ProtoBuffer =

@@ -10,6 +10,7 @@ import
   libp2p/protocols/pubsub
 import
   ../../../protocol/waku_message,
+  ../../../protocol/waku_message/rpc,
   ../../message_cache
 
 logScope: 
@@ -35,13 +36,13 @@ proc messageHandler*(cache: TopicCache): TopicCacheMessageHandler =
     trace "PubsubTopic handler triggered", pubsubTopic=pubsubTopic
 
     # Add message to current cache
-    let msg = WakuMessage.decode(data)
+    let msg = WakuMessageRPC.decode(data)
     if msg.isErr():
       debug "WakuMessage received but failed to decode", msg=msg, pubsubTopic=pubsubTopic
       # TODO: handle message decode failure
       return
 
     trace "WakuMessage received", msg=msg, pubsubTopic=pubsubTopic
-    cache.addMessage(PubSubTopic(pubsubTopic), msg.get())
+    cache.addMessage(PubSubTopic(pubsubTopic), msg.value.toAPI())
   
   handler

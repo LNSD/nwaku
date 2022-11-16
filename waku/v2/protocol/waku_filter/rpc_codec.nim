@@ -8,6 +8,7 @@ import
 import
   ../../../common/protobuf,
   ../waku_message,
+  ../waku_message/rpc as waku_message_rpc,
   ./rpc
 
 
@@ -81,7 +82,7 @@ proc encode*(push: MessagePush): ProtoBuffer =
   var pb = initProtoBuffer()
 
   for push in push.messages:
-    pb.write3(1, push.encode())
+    pb.write3(1, push.toRPC().encode())
 
   pb.finish3()
 
@@ -96,9 +97,9 @@ proc decode*(T: type MessagePush, buffer: seq[byte]): ProtoResult[T] =
     return err(ProtoError.RequiredFieldMissing)
   else:
     for buf in messages:
-      let msg = ?WakuMessage.decode(buf)
-      rpc.messages.add(msg)
-
+      let msg = ?WakuMessageRPC.decode(buf)
+      rpc.messages.add(msg.toAPI())
+  
   ok(rpc)
 
 

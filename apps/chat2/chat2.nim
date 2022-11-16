@@ -24,6 +24,7 @@ import libp2p/[switch,                   # manage transports, a single entry poi
                nameresolving/dnsresolver]# define DNS resolution
 import
   ../../waku/v2/protocol/waku_message,
+  ../../waku/v2/protocol/waku_message/rpc as waku_message_rpc,
   ../../waku/v2/protocol/waku_lightpush/rpc,
   ../../waku/v2/protocol/waku_filter,
   ../../waku/v2/protocol/waku_store,
@@ -267,10 +268,12 @@ proc publish(c: Chat, line: string) =
           debug "rate limit proof is appended to the message", success=success
           let decodeRes = RateLimitProof.init(message.proof)
           if decodeRes.isErr():
-            error "could not decode the RLN proof"
+            error "invalid rate limit proof format", error=decodeRes.error
+            return
 
           let proof = decodeRes.get()
-          # TODO move it to log after dogfooding
+
+          # TODO: move it to log after doogfooding
           let msgEpoch = fromEpoch(proof.epoch)
           if fromEpoch(c.node.wakuRlnRelay.lastEpoch) == msgEpoch:
             echo "--rln epoch: ", msgEpoch, " ⚠️ message rate violation! you are spamming the network!"
@@ -523,11 +526,11 @@ proc processInput(rfd: AsyncFD) {.async.} =
     proc handler(topic: Topic, data: seq[byte]) {.async, gcsafe.} =
       trace "Hit subscribe handler", topic
 
-      let decoded = WakuMessage.decode(data)
+      let decoded = WakuMessageRPC.decode(data)
 
       if decoded.isOk():
-        if decoded.get().contentTopic == chat.contentTopic:
-          chat.printReceivedMessage(decoded.get())
+        if decoded.value.toAPI().contentTopic == chat.contentTopic:
+          chat.printReceivedMessage(decoded.value.toAPI())
       else:
         trace "Invalid encoded WakuMessage", error = decoded.error
 

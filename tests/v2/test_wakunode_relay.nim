@@ -17,6 +17,7 @@ import
   libp2p/protocols/pubsub/gossipsub
 import
   ../../waku/v2/protocol/waku_message,
+  ../../waku/v2/protocol/waku_message/rpc,
   ../../waku/v2/node/peer_manager/peer_manager,
   ../../waku/v2/utils/peers,
   ../../waku/v2/node/waku_node
@@ -89,9 +90,9 @@ procSuite "WakuNode - Relay":
 
     var completionFut = newFuture[bool]()
     proc relayHandler(topic: string, data: seq[byte]) {.async, gcsafe.} =
-      let msg = WakuMessage.decode(data)
+      let msg = WakuMessageRPC.decode(data)
       if msg.isOk():
-        let val = msg.value()
+        let val = msg.value.toAPI()
         check:
           topic == pubSubTopic
           val.contentTopic == contentTopic
@@ -158,10 +159,10 @@ procSuite "WakuNode - Relay":
       ## the validator that only allows messages with contentTopic1 to be relayed
       check:
         topic == pubSubTopic
-      let msg = WakuMessage.decode(message.data)
+      let msg = WakuMessageRPC.decode(message.data)
       if msg.isOk():
         # only relay messages with contentTopic1
-        if msg.value().contentTopic  == contentTopic1:
+        if msg.value.toAPI().contentTopic  == contentTopic1:
           result = ValidationResult.Accept
           completionFutValidatorAcc.complete(true)
         else:
@@ -175,9 +176,9 @@ procSuite "WakuNode - Relay":
     var completionFut = newFuture[bool]()
     proc relayHandler(topic: string, data: seq[byte]) {.async, gcsafe.} =
       debug "relayed pubsub topic:", topic
-      let msg = WakuMessage.decode(data)
+      let msg = WakuMessageRPC.decode(data)
       if msg.isOk():
-        let val = msg.value()
+        let val = msg.value.toAPI()
         check:
           topic == pubSubTopic
           # check that only messages with contentTopic1 is relayed (but not contentTopic2)
@@ -228,9 +229,9 @@ procSuite "WakuNode - Relay":
 
     var completionFut = newFuture[bool]()
     proc relayHandler(topic: string, data: seq[byte]) {.async, gcsafe.} =
-      let msg = WakuMessage.decode(data)
+      let msg = WakuMessageRPC.decode(data)
       if msg.isOk():
-        let val = msg.value()
+        let val = msg.value.toAPI()
         check:
           topic == pubSubTopic
           val.contentTopic == contentTopic
@@ -272,9 +273,9 @@ procSuite "WakuNode - Relay":
 
     var completionFut = newFuture[bool]()
     proc relayHandler(topic: string, data: seq[byte]) {.async, gcsafe.} =
-      let msg = WakuMessage.decode(data)
+      let msg = WakuMessageRPC.decode(data)
       if msg.isOk():
-        let val = msg.value()
+        let val = msg.value.toAPI()
         check:
           topic == pubSubTopic
           val.contentTopic == contentTopic
@@ -320,9 +321,9 @@ procSuite "WakuNode - Relay":
 
     var completionFut = newFuture[bool]()
     proc relayHandler(topic: string, data: seq[byte]) {.async, gcsafe.} =
-      let msg = WakuMessage.decode(data)
+      let msg = WakuMessageRPC.decode(data)
       if msg.isOk():
-        let val = msg.value()
+        let val = msg.value.toAPI()
         check:
           topic == pubSubTopic
           val.contentTopic == contentTopic
@@ -363,9 +364,9 @@ procSuite "WakuNode - Relay":
 
     var completionFut = newFuture[bool]()
     proc relayHandler(topic: string, data: seq[byte]) {.async, gcsafe.} =
-      let msg = WakuMessage.decode(data)
+      let msg = WakuMessageRPC.decode(data)
       if msg.isOk():
-        let val = msg.value()
+        let val = msg.value.toAPI()
         check:
           topic == pubSubTopic
           val.contentTopic == contentTopic
@@ -406,9 +407,9 @@ procSuite "WakuNode - Relay":
 
     var completionFut = newFuture[bool]()
     proc relayHandler(topic: string, data: seq[byte]) {.async, gcsafe.} =
-      let msg = WakuMessage.decode(data)
+      let msg = WakuMessageRPC.decode(data)
       if msg.isOk():
-        let val = msg.value()
+        let val = msg.value.toAPI()
         check:
           topic == pubSubTopic
           val.contentTopic == contentTopic
