@@ -21,7 +21,6 @@ logScope:
   topics = "sqlite"
 
 
-type Sqlite = ptr sqlite3
 
 template dispose(db: Sqlite) =
   discard sqlite3_close(db)
@@ -38,13 +37,13 @@ proc disposeIfUnreleased[T](x: var AutoDisposed[T]) =
 template checkErr*(op, cleanup: untyped) =
   if (let rc = (op); rc != SQLITE_OK):
     cleanup
-    return err($sqlite3_errstr(v))
+    return err($sqlite3_errstr(rc))
 
 template checkErr*(op) =
   checkErr(op): discard
 
 template prepare*(env: Sqlite, q: string, cleanup: untyped): RawStmt =
-  var s: ptr sqlite3_stmt
+  var s: RawStmt
   checkErr sqlite3_prepare_v2(env, q, q.len.cint, addr s, nil):
     cleanup
   s
@@ -53,7 +52,7 @@ template prepare*(env: Sqlite, q: string, cleanup: untyped): RawStmt =
 ## Sqlite database object
 
 type SqliteDatabase* = ref object
-    env*: Sqlite
+    env: Sqlite
 
 
 
@@ -99,8 +98,7 @@ proc new*(T: type SqliteDatabase, path: string, readOnly=false): SqliteResult[T]
       discard sqlite3_finalize(journalModePragma)
       return err($sqlite3_errstr(x))
 
-    if (let x = sqlite3_column_text(journalModePragma, 0);
-        x != "memory" and x != "wal"):
+    if (let x = sqlite3_column_text(journalModePragma, 0); x != "memory" and x != "wal"):
       discard sqlite3_finalize(journalModePragma)
       return err("Invalid pragma result: " & $x)
 
@@ -136,12 +134,7 @@ proc query*(db: SqliteDatabase, query: string, onData: DataProc): SqliteResult[b
     discard sqlite3_clear_bindings(s) # no errors possible
     discard sqlite3_finalize(s) # NB: dispose of the prepared query statement and free associated memory
 
-proc prepareStmt*(
-  db: SqliteDatabase,
-  stmt: string,
-  Params: type,
-  Res: type
-): SqliteResult[SqliteStmt[Params, Res]] =
+proc prepareStmt*( db: SqliteDatabase, stmt: string, Params: type, Res: type): SqliteResult[SqliteStmt[Params, Res]] =
   var s: RawStmt
   checkErr sqlite3_prepare_v2(db.env, stmt, stmt.len.cint, addr s, nil)
   ok(SqliteStmt[Params, Res](s))

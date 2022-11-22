@@ -7,6 +7,9 @@ import
   stew/results,
   sqlite3_abi
 
+
+type Sqlite* = ptr sqlite3
+
 type
   SqliteError* = object
     code: int
