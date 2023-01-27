@@ -1,0 +1,84 @@
+openapi: 3.0.3
+info:
+  title: Waku V2 node REST API
+  version: 1.0.0
+  contact:
+    name: VAC Team
+    url: https://forum.vac.dev/
+
+tags:
+  - name: admin
+    description: Administration REST API for WakuV2 node
+
+paths:
+  /admin/v1/peers:  # Note the plural in messages
+    get: # get_waku_v2_admin_v1_peers
+      summary: Return an array of peers registered on this node.
+      description: |
+        Returns an array of peers registered on this node. Since a Waku v2 node
+        may open either continuous or ad hoc connections, depending on the
+        negotiated protocol, these peers may have different connected states.
+        The same peer MAY appear twice in the returned array, if it is
+        registered for more than one protocol.
+      operationId: getNodePeers
+      tags:
+        - admin
+      responses:
+        '200':
+          description: The latest messages on the polled topic.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminGetPeersResponse"
+        '400':
+          description: Bad request.
+        '5XX':
+          description: Unexpected error.
+
+    post: # post_waku_v2_admin_v1_peers
+      summary: Post a list of peers to connect to.
+      description: Post a list of peer multiaddresses to connect to.
+      operationId: postNodePeers
+      tags:
+        - admin
+      requestBody:
+        description: |
+          Array of peer multiaddrs to connect to. Each multiaddr must
+          contain the location and identity addresses of a peer.
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminPostPeersRequest"
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request.
+        '5XX':
+          description: Unexpected error.
+
+components:
+  schemas:
+    WakuPeer:
+      type: object
+      properties:
+        multiaddr:
+          type: string
+        protocol:
+          type: string
+        connected:
+          type: boolean
+      required:
+        - multiaddr
+        - protocol
+        - connected
+
+    AdminGetPeersResponse:
+      type: array
+      items:
+        $ref: "#/components/schemas/WakuPeer"
+
+    AdminPostPeersRequest:
+      type: array
+      items:
+        type: string
