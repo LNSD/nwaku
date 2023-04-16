@@ -38,7 +38,7 @@ type WakuDiscoveryV5* = ref object
 # Helper functions #
 ####################
 
-proc parseBootstrapAddress(address: string): Result[enr.Record, cstring] =
+proc parseBootstrapAddress(address: string): Result[enr.Record, string] =
   logScope:
     address = address
 
@@ -116,12 +116,16 @@ proc new*(T: type WakuDiscoveryV5,
   WakuDiscoveryV5(protocol: protocol, listening: false)
 
 # TODO: Do not raise an exception, return a result
-proc open*(wd: WakuDiscoveryV5) {.raises: [CatchableError].} =
-  debug "Opening Waku discovery v5 ports"
+proc open*(wd: WakuDiscoveryV5): Result[void, string] =
   if wd.listening:
     return
 
-  wd.protocol.open()
+  debug "opening Waku discovery v5 ports"
+  try:
+    wd.protocol.open()
+  except CatchableError:
+    return err(getCurrentExceptionMsg())
+
   wd.listening = true
 
 proc start*(wd: WakuDiscoveryV5) =
@@ -129,15 +133,18 @@ proc start*(wd: WakuDiscoveryV5) =
   wd.protocol.start()
 
 proc closeWait*(wd: WakuDiscoveryV5) {.async.} =
-  debug "closing Waku discovery v5 node"
   if not wd.listening:
     return
 
-  wd.listening = false
+  debug "closing Waku discovery v5 node"
+
   await wd.protocol.closeWait()
+  wd.listening = false
 
 proc findRandomPeers*(wd: WakuDiscoveryV5): Future[Result[seq[RemotePeerInfo], cstring]] {.async.} =
   ## Find random peers to connect to using Discovery v5
+  if not wd.listening:
+    return err("discovery v5 is not listening")
 
   # Query for a random target and collect all discovered nodes
   let discoveredNodes = await wd.protocol.queryRandom()
