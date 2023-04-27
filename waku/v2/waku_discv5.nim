@@ -28,54 +28,14 @@ declarePublicGauge waku_discv5_errors, "number of waku discv5 errors", ["type"]
 logScope:
   topics = "waku discv5"
 
+type WakuDiscoveryV5Config* = object
+
+
 
 type WakuDiscoveryV5* = ref object
     protocol*: protocol.Protocol
     listening*: bool
 
-
-####################
-# Helper functions #
-####################
-
-proc parseBootstrapAddress(address: string): Result[enr.Record, string] =
-  logScope:
-    address = address
-
-  if address[0] == '/':
-    return err("MultiAddress bootstrap addresses are not supported")
-
-  let lowerCaseAddress = toLowerAscii(address)
-  if lowerCaseAddress.startsWith("enr:"):
-    var enrRec: enr.Record
-    if not enrRec.fromURI(address):
-      return err("Invalid ENR bootstrap record")
-
-    return ok(enrRec)
-
-  elif lowerCaseAddress.startsWith("enode:"):
-    return err("ENode bootstrap addresses are not supported")
-
-  else:
-    return err("Ignoring unrecognized bootstrap address type")
-
-proc addBootstrapNode*(bootstrapAddr: string,
-                       bootstrapEnrs: var seq[enr.Record]) =
-  # Ignore empty lines or lines starting with #
-  if bootstrapAddr.len == 0 or bootstrapAddr[0] == '#':
-    return
-
-  let enrRes = parseBootstrapAddress(bootstrapAddr)
-  if enrRes.isErr():
-    debug "ignoring invalid bootstrap address", reason = enrRes.error
-    return
-
-  bootstrapEnrs.add(enrRes.value)
-
-
-####################
-# Discovery v5 API #
-####################
 
 proc new*(T: type WakuDiscoveryV5,
           extIp: Option[ValidIpAddress],
@@ -166,3 +126,40 @@ proc findRandomPeers*(wd: WakuDiscoveryV5): Future[Result[seq[RemotePeerInfo], c
 
 
   return ok(discoveredPeers)
+
+
+## Helper functions
+
+proc parseBootstrapAddress(address: string): Result[enr.Record, string] =
+  logScope:
+    address = address
+
+  if address[0] == '/':
+    return err("MultiAddress bootstrap addresses are not supported")
+
+  let lowerCaseAddress = toLowerAscii(address)
+  if lowerCaseAddress.startsWith("enr:"):
+    var enrRec: enr.Record
+    if not enrRec.fromURI(address):
+      return err("Invalid ENR bootstrap record")
+
+    return ok(enrRec)
+
+  elif lowerCaseAddress.startsWith("enode:"):
+    return err("ENode bootstrap addresses are not supported")
+
+  else:
+    return err("Ignoring unrecognized bootstrap address type")
+
+proc addBootstrapNode*(bootstrapAddr: string,
+                       bootstrapEnrs: var seq[enr.Record]) =
+  # Ignore empty lines or lines starting with #
+  if bootstrapAddr.len == 0 or bootstrapAddr[0] == '#':
+    return
+
+  let enrRes = parseBootstrapAddress(bootstrapAddr)
+  if enrRes.isErr():
+    debug "ignoring invalid bootstrap address", reason = enrRes.error
+    return
+
+  bootstrapEnrs.add(enrRes.value)
