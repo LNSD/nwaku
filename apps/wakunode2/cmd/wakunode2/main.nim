@@ -13,9 +13,9 @@ import
   system/ansi_c,
   libp2p/crypto/crypto
 import
-  ../../waku/common/logging,
-  ./config,
-  ./app
+  ../../../../waku/common/logging,
+  ../../config,
+  ../../app
 
 logScope:
   topics = "wakunode main"
