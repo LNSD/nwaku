@@ -37,10 +37,10 @@ import
   ../../waku/v2/waku_enr,
   ../../waku/v2/waku_discv5,
   ../../waku/v2/waku_peer_exchange,
-  ../../waku/v2/waku_relay/validators,
   ../../waku/v2/waku_store,
   ../../waku/v2/waku_lightpush,
   ../../waku/v2/waku_filter,
+  ./wakunode2_validator_signed,
   ./config
 import
   ../../waku/v2/node/message_cache,
@@ -547,19 +547,20 @@ proc setupProtocols(node: WakuNode, conf: WakuNodeConf,
     peerExchangeHandler = some(handlePeerExchange)
 
   if conf.relay:
+    let pubsubTopics = conf.topics.split(" ")
     try:
-      let pubsubTopics = conf.topics.split(" ")
       await mountRelay(node, pubsubTopics, peerExchangeHandler = peerExchangeHandler)
     except CatchableError:
       return err("failed to mount waku relay protocol: " & getCurrentExceptionMsg())
 
-    # TODO: Get this from cli
-    var topicsPublicKeys = initTable[string, SkPublicKey]()
     # Add validation keys to protected topics
-    for topic, publicKey in topicsPublicKeys.pairs:
-      info "routing only signed traffic", topic=topic, publicKey=publicKey
-      node.wakuRelay.addSignedTopicValidator(Pubsubtopic(topic), publicKey)
-
+    for topicKey in conf.protectedTopics:
+      if topicKey.topic notin pubsubTopics:
+        warn "protected topic not in subscribed pubsub topics, skipping adding validator",
+              protectedTopic=topicKey.topic, subscribedTopics=pubsubTopics
+        continue
+      notice "routing only signed traffic", protectedTopic=topicKey.topic, publicKey=topicKey.key
+      node.wakuRelay.addSignedTopicValidator(Pubsubtopic(topicKey.topic), topicKey.key)
 
   # Keepalive mounted on all nodes
   try:
